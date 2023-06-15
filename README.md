@@ -1,11 +1,11 @@
 # 仓库结构
 
 `sln` 中为 ptds 解释器(ptds.vcxproj)和 demo(demo.vcxproj) 的 VS 解决方案  
-`bin` 中有 `demo` 和 `ptds_lib` 两个文件夹
-`demo` 中为演示程序, 包含可执行文件、test.ptds文件和x64-release版本的动态链接库
-`ptds_lib` 中为 ptds 解释器的静态库、动态库、源文件和头文件
-`readme.md`
-`concepts.md` 详细的 PTDS 文件的规范
+`bin` 中有 `demo` 和 `ptds_lib` 两个文件夹  
+`demo` 中为演示程序, 包含可执行文件、test.ptds文件和x64-release版本的动态链接库  
+`ptds_lib` 中为 ptds 解释器的静态库、动态库、源文件和头文件  
+`readme.md`  
+`concepts.md` 详细的 PTDS 文件的规范  
 
 # About PTDS
 PTDS(Petal Textualized Data Store)
