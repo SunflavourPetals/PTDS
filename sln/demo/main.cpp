@@ -145,7 +145,7 @@ int main()
 		{
 			cout << "* ³ÌĞòÒÑÍË³ö" << endl;
 			system("pause");
-			return;
+			return 0;
 		}
 		if (locale_str == ":cls" || locale_str == ":clear")
 		{
@@ -156,6 +156,7 @@ int main()
 		{
 			wcout.imbue(std::locale(locale_str));
 			wcin.imbue(std::locale(locale_str));
+			break;
 		}
 		catch (std::exception&)
 		{
