@@ -115,7 +115,21 @@ PTDS 支持 C 语言中绝大部分的转义字符
 合法的实体名称片段如`something` `未命名` `あいしてる` `str1` `1` `.-_-_-_-_-...-` 等  
 
 使用[嵌套标签](#标签)声明的名称按标签声明的顺序, 用`:`连接各个名称  
-如`First-name:Last-name`等  
+如  
+```
+[" PTDS "]
+[First-name] [Last-name] 1
+```
+在 C++ 程序中查询则使用全名 `First-name:Last-name`  
+``` c++
+void query(const Petal::PTDS& ptds) try {
+    ptds.Entity(L"First-name:Last-name");
+}
+catch (Petal::PTDSQueryException&) {
+    std::cout << "can not fine entity: ";
+    std::wcout << L"First-name:Last-name" << std::endl;
+}
+```
 供查询实体时使用.  
 
 ## 标签
