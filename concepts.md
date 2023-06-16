@@ -50,12 +50,12 @@ def"
 ```
 [str2] "abc\
 def"
-// Entity(L"str") -> "abcdef"
+// Entity(L"str2") -> "abcdef"
 ```
 3. 想要在字符值或字符串中使用一些特殊符号如换行, 请使用[转义字符](#转义字符)
 ```
 [str3] "abc\ndef"
-// Entity(L"str") -> "abc\ndef"
+// Entity(L"str3") -> "abc\ndef"
 ```
 
 #### 转义字符
