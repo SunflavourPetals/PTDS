@@ -118,7 +118,7 @@ PTDS 支持 C 语言中绝大部分的转义字符
 如  
 ```
 [" PTDS "]
-[First-name] [Last-name] 1
+[First-name] [Last-name] 1, 2, 3
 ```
 在 C++ 程序中查询则使用全名 `First-name:Last-name`  
 ``` c++
