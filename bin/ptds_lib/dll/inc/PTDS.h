@@ -3,15 +3,17 @@
 #ifndef Petal_Header_PTDS_Included
 #define Petal_Header_PTDS_Included
 
+
 #ifdef Petal_DLL_PTDS_DLLExport
-#define _Petal_DLL _declspec(dllexport)
+#define _Petal_LIB _declspec(dllexport)
 #else
 #ifdef Petal_LIB_PTDS
-#define _Petal_DLL
+#define _Petal_LIB
 #else
-#define _Petal_DLL _declspec(dllimport)
+#define _Petal_LIB _declspec(dllimport)
 #endif // Petal_LIB_PTDS
 #endif // Petal_DLL_PTDS_DLLExport
+
 
 #include <unordered_map>
 
@@ -120,7 +122,7 @@ namespace Petal
 		PTDSBasicTypeEnum t{ PTDSBasicTypeEnum::Unknown };
 	};
 	using PTDO = ::std::unordered_map<PTDSBasicType::str_utf16le, PTDSValueSet>;
-	class _Petal_DLL PTDS
+	class _Petal_LIB PTDS
 	{
 	public:
 		void LoadPTDS(const PTDSBasicType::char_utf16le* file_name_);
@@ -188,7 +190,7 @@ namespace Petal
 		BlockNotClosed = 19,
 	};
 	class PTDSFile;
-	class _Petal_DLL PTDSException
+	class _Petal_LIB PTDSException
 	{
 	public:
 		PTDSException() = default;

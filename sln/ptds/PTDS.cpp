@@ -1,6 +1,8 @@
-// #ifndef Petal_LIB_PTDS
-// #define Petal_LIB_PTDS
-// #endif // !Petal_LIB_PTDS
+/*
+#ifndef Petal_LIB_PTDS
+#define Petal_LIB_PTDS
+#endif // !Petal_LIB_PTDS
+*/
 
 #ifndef Petal_DLL_PTDS_DLLExport
 #define Petal_DLL_PTDS_DLLExport
@@ -43,10 +45,12 @@ namespace Petal
 // PTDSFile
 namespace Petal
 {
-	class PTDSFile
+	class PTDSFile final
 	{
 	public:
 		bool Open(const PTDSBasicType::char_utf16le* file_name_);
+		bool RefOuterBuffer(const PTDSBasicType::char_utf16le* buffer, const PTDSBasicType::tsize& size);
+		bool CopyOuterAsBuffer(const PTDSBasicType::char_utf16le* buffer, const PTDSBasicType::tsize& size);
 		// 返回索引处的字符的引用, 此函数不会失败, 总会索引到缓冲区内某个值, 但是是否有效需要查看 EndOfFile 的返回值, 当 EndOfFile 时索引到的字符无效
 		const PTDSBasicType::char_utf16le& Ref() const;
 		// 访问 索引前100至后100位置处的字符, 如果超过此值函数将失败, 返回L'\0', error 为非 Unknown
@@ -56,18 +60,10 @@ namespace Petal
 		bool Next();
 		// 文件是否结束
 		bool EndOfFile() const;
-		// 转到下一个有效字符, 在 pts 里控制字符和空格等是无关紧要的, 使用此函数跳过无关字符和注释段, 此函数会自动记录 line 和 position
-		void NextValid();
 		// 检查当前 index 引用的字符是否可以略过, 如控制字符、空格可略过, 返回 false. true 为不可略过
 		bool CheckValid();
 		// 处理并跳过换行, 只有在遇到换行符(index 索引到CR或LF时)才能使用, 否则抛出异常
 		void ProcLineFeed();
-		// 过滤注释函数, 使用时 index 应索引至注释起始标志之后紧接的字符, 如"  ["abc..."]"中,
-		// 使用以下四个函数时 this 的 index 应索引至'a'位置, 过滤注释起始标志由调用方完成, 减少重复检查起始标志以优化效率
-		void FilComment(PTDSBasicType::char_utf16le closebegin = L'\"', PTDSBasicType::char_utf16le closeend = L']');
-		void FilCommentEx();
-		void FilCommentC();
-		void FilCommentCpp();
 		// 去除 BOM 后文件中 utf-16 字符的数量
 		PTDSBasicType::tsize ValidFileSize() const;
 		// 当时索引到的字符所在的行数
@@ -103,19 +99,155 @@ namespace Petal
 		PTDSFileErrorCode error_code{ PTDSFileErrorCode::Unknown };
 		HANDLE file_handle{ nullptr };
 		bool buffer_flipped{ false };
-	};
-	class PTDSWarpFile : public PTDSFile
-	{
-	public:
-		bool RefOuterBuffer(const PTDSBasicType::char_utf16le* buffer, const PTDSBasicType::tsize& size);
-		bool CopyOuterAsBuffer(const PTDSBasicType::char_utf16le* buffer, const PTDSBasicType::tsize& size);
-		bool Open(const PTDSBasicType::char_utf16le* file_name_);
-		bool Next();
-		const PTDSBasicType::char_utf16le& Ref(signed int addr, PTDSFileErrorCode& error);
+		bool load_from_file{ true };
 	};
 }
 namespace Petal
 {
+	namespace PTDSTools
+	{
+		// 过滤注释函数, 使用时 index 应索引至注释起始标志之后紧接的字符, 如"  ["abc..."]"中,
+		// 使用以下四个函数时 this 的 index 应索引至'a'位置, 过滤注释起始标志由调用方完成, 减少重复检查起始标志以优化效率
+		void FilComment(PTDSFile& pts, PTDSBasicType::char_utf16le closebegin = keyword_quote, PTDSBasicType::char_utf16le closeend = keyword_tagclose)
+		{
+			PTDSFileErrorCode error{ PTDSFileErrorCode::Unknown };
+			PTDSBasicType::tsize line = pts.Line();
+			PTDSBasicType::tsize position = pts.Position();
+			while (!pts.EndOfFile())
+			{
+				if (pts.Ref() == closebegin)
+				{
+					if (pts.Ref(1, error) == closeend && error == PTDSFileErrorCode::Unknown)
+					{
+						pts.Next();
+						pts.Next();
+						return;
+					}
+				}
+				switch (pts.Ref())
+				{
+				case ig_null:
+				case ig_space:
+				case ig_table:
+					break;
+				case ig_cr:
+				case ig_lf:
+					pts.ProcLineFeed();
+					continue;
+					break;
+				default:
+					break;
+				}
+				pts.Next();
+			}
+			throw PTDSException(PTDSErrorCode::CommentNotClosed, L"CommentNotClosed", line, position, L'\0');
+		}
+		void FilCommentEx(PTDSFile& pts)
+		{
+			FilComment(pts, keyword_quote, keyword_ex_bracketclose);
+		}
+		void FilCommentC(PTDSFile& pts)
+		{
+			FilComment(pts, keyword_ex_mul, keyword_ex_div);
+		}
+		void FilCommentCpp(PTDSFile& pts)
+		{
+			PTDSFileErrorCode error{ PTDSFileErrorCode::Unknown };
+			PTDSBasicType::tsize line = pts.Line();
+			PTDSBasicType::tsize position = pts.Position();
+			while (!pts.EndOfFile())
+			{
+				switch (pts.Ref())
+				{
+				case ig_cr:
+					if (pts.Ref(1, error) == ig_lf && error == PTDSFileErrorCode::Unknown)
+					{
+						pts.Next();
+					}
+					pts.Next();
+					pts.AddLine();
+					return;
+					break;
+				case ig_lf:
+					pts.Next();
+					pts.AddLine();
+					return;
+					break;
+				default:
+					break;
+				}
+				pts.Next();
+			}
+		}
+		// 转到下一个有效字符, 在 pts 里控制字符和空格等是无关紧要的, 使用此函数跳过无关字符和注释段, 此函数会自动记录 line 和 position
+		void NextValid(PTDSFile& pts)
+		{
+			PTDSFileErrorCode error{ PTDSFileErrorCode::Unknown };
+			while (!pts.EndOfFile())
+			{
+				switch (pts.Ref())
+				{
+				case ig_cr:
+				case ig_lf:
+					pts.ProcLineFeed();
+					continue;
+					break;
+				case keyword_tagopen:
+					if (pts.Ref(1, error) == keyword_quote && error == PTDSFileErrorCode::Unknown)
+					{
+						pts.Next();
+						pts.Next();
+						// comment
+						FilComment(pts);
+						continue;
+					}
+					else { return; }
+					break;
+				case keyword_ex_bracketopen:
+					if (pts.Ref(1, error) == keyword_quote && error == PTDSFileErrorCode::Unknown)
+					{
+						pts.Next();
+						pts.Next();
+						// comment ex
+						FilCommentEx(pts);
+						continue;
+					}
+					else { return; }
+					break;
+				case keyword_ex_div:
+					if (pts.Ref(1, error) == keyword_ex_mul && error == PTDSFileErrorCode::Unknown)
+					{
+						pts.Next();
+						pts.Next();
+						// comment c
+						FilCommentC(pts);
+						continue;
+					}
+					else if (pts.Ref(1, error) == keyword_ex_div && error == PTDSFileErrorCode::Unknown)
+					{
+						pts.Next();
+						pts.Next();
+						// comment cpp
+						FilCommentCpp(pts);
+						continue;
+					}
+					else { return; }
+					break;
+				default:
+					if (pts.CheckValid() == false)
+					{
+						break;
+					}
+					else
+					{
+						return;
+					}
+					break;
+				}
+				pts.Next();
+			}
+		}
+	}
 	namespace PTDSFileTools
 	{
 		void SpecifyAnotherBuffer(
@@ -264,13 +396,94 @@ namespace Petal
 			error_code = PTDSFileErrorCode::OddReadBytes;
 			return false;
 		}
+		load_from_file = true;
 		base_index = 0;
 		curr_index = 0;
 		buffer_ref = buffer_1;
 		line = 1;
 		position = 1;
 		buffer_flipped = false;
-		return 1;
+		return true;
+	}
+	bool PTDSFile::RefOuterBuffer(const PTDSBasicType::char_utf16le* buffer, const PTDSBasicType::tsize& size)
+	{
+		if (buffer == nullptr)
+		{
+			error_code = PTDSFileErrorCode::FailedInOpenFile;
+			return false;
+		}
+		if (size < 1)
+		{
+			error_code = PTDSFileErrorCode::NullFile;
+			return false;
+		}
+		this->~PTDSFile();
+		load_from_file = false;
+		error_code = PTDSFileErrorCode::Unknown;
+		valid_size = size;
+		base_index = 0;
+		curr_index = 0;
+		line = 1;
+		position = 1;
+		buffer_flipped = false;
+		buffer_ref = buffer;
+
+		const unsigned char* bom_ptr{ reinterpret_cast<const unsigned char*>(buffer_ref) };
+		const unsigned char UTF16LE[4]{ 0xFFu, 0xFEu, 0x00u, 0x00u };
+		if (bom_ptr[0] == UTF16LE[0] && bom_ptr[1] == UTF16LE[1])
+		{
+			buffer_ref += 1;
+			valid_size -= 1;
+			if (valid_size < 1)
+			{
+				error_code = PTDSFileErrorCode::NullFile;
+				return false;
+			}
+		}
+		return true;
+	}
+	bool PTDSFile::CopyOuterAsBuffer(const PTDSBasicType::char_utf16le* buffer, const PTDSBasicType::tsize& size)
+	{
+		if (buffer == nullptr)
+		{
+			error_code = PTDSFileErrorCode::FailedInOpenFile;
+			return false;
+		}
+		if (size < 1)
+		{
+			error_code = PTDSFileErrorCode::NullFile;
+			return false;
+		}
+		this->~PTDSFile();
+		load_from_file = false;
+		error_code = PTDSFileErrorCode::Unknown;
+		valid_size = size;
+		base_index = 0;
+		curr_index = 0;
+		line = 1;
+		position = 1;
+		buffer_flipped = false;
+
+		constexpr PTDSBasicType::tsize type_size{ sizeof(PTDSBasicType::char_utf16le) };
+		buffer_1 = new PTDSBasicType::char_utf16le[size + 1];
+		const PTDSBasicType::tsize buffer_size{ size* type_size };
+		memcpy_s(buffer_1, buffer_size, buffer, buffer_size);
+		buffer_1[size] = L'\0';
+		buffer_ref = buffer_1;
+
+		const unsigned char* bom_ptr{ reinterpret_cast<const unsigned char*>(buffer_ref) };
+		const unsigned char UTF16LE[4]{ 0xFFu, 0xFEu, 0x00u, 0x00u };
+		if (bom_ptr[0] == UTF16LE[0] && bom_ptr[1] == UTF16LE[1])
+		{
+			buffer_ref += 1;
+			valid_size -= 1;
+			if (valid_size < 1)
+			{
+				error_code = PTDSFileErrorCode::NullFile;
+				return false;
+			}
+		}
+		return true;
 	}
 	const PTDSBasicType::char_utf16le& PTDSFile::Ref() const
 	{
@@ -279,6 +492,21 @@ namespace Petal
 	const PTDSBasicType::char_utf16le& PTDSFile::Ref(signed int addr, PTDSFileErrorCode& error)
 	{
 		static constexpr PTDSBasicType::char_utf16le null_char{ L'\0' };
+		if (load_from_file == false)
+		{
+			if ((static_cast<PTDSBasicType::i64>(curr_index) + addr) < 0)
+			{
+				error = PTDSFileErrorCode::RefOffsetTooSmall;
+				return null_char;
+			}
+			const PTDSBasicType::tsize target_index{ curr_index + addr };
+			if (target_index >= valid_size)
+			{
+				error = PTDSFileErrorCode::RefOffsetTooBig;
+				return null_char;
+			}
+			return buffer_ref[target_index];
+		}
 		static constexpr long long buffer_size_ll{ static_cast<long long>(buffer_size) };
 		static constexpr int max_valid_offset{ +100 };
 		static constexpr int min_valid_offset{ -100 };
@@ -343,6 +571,10 @@ namespace Petal
 		}
 		++curr_index;
 		++position;
+		if (load_from_file == false)
+		{
+			return true;
+		}
 		if ((buffer_flipped == false) && (curr_index >= buffer_size / 2) && (valid_size > base_index + buffer_size))
 		{
 			buffer_flipped = true;
@@ -450,74 +682,6 @@ namespace Petal
 			break;
 		}
 	}
-	void PTDSFile::NextValid()
-	{
-		PTDSFile& pts{ *this };
-		PTDSFileErrorCode error{ PTDSFileErrorCode::Unknown };
-		while (!pts.EndOfFile())
-		{
-			switch (pts.Ref())
-			{
-			case ig_cr:
-			case ig_lf:
-				this->ProcLineFeed();
-				continue;
-				break;
-			case keyword_tagopen:
-				if (pts.Ref(1, error) == keyword_quote && error == PTDSFileErrorCode::Unknown)
-				{
-					pts.Next();
-					pts.Next();
-					// comment
-					this->FilComment();
-					continue;
-				}
-				else { return; }
-				break;
-			case keyword_ex_bracketopen:
-				if (pts.Ref(1, error) == keyword_quote && error == PTDSFileErrorCode::Unknown)
-				{
-					pts.Next();
-					pts.Next();
-					// comment ex
-					this->FilCommentEx();
-					continue;
-				}
-				else { return; }
-				break;
-			case keyword_ex_div:
-				if (pts.Ref(1, error) == keyword_ex_mul && error == PTDSFileErrorCode::Unknown)
-				{
-					pts.Next();
-					pts.Next();
-					// comment c
-					this->FilCommentC();
-					continue;
-				}
-				else if (pts.Ref(1, error) == keyword_ex_div && error == PTDSFileErrorCode::Unknown)
-				{
-					pts.Next();
-					pts.Next();
-					// comment cpp
-					this->FilCommentCpp();
-					continue;
-				}
-				else { return; }
-				break;
-			default:
-				if (pts.CheckValid() == false)
-				{
-					break;
-				}
-				else
-				{
-					return;
-				}
-				break;
-			}
-			pts.Next();
-		}
-	}
 	bool PTDSFile::CheckValid()
 	{
 		auto& pts{ *this };
@@ -539,192 +703,6 @@ namespace Petal
 			break;
 		}
 		return true;
-	}
-	void PTDSFile::FilComment(PTDSBasicType::char_utf16le closebegin, PTDSBasicType::char_utf16le closeend)
-	{
-		PTDSFile& pts{ *this };
-		PTDSFileErrorCode error{ PTDSFileErrorCode::Unknown };
-		PTDSBasicType::tsize line = pts.Line();
-		PTDSBasicType::tsize position = pts.Position();
-		while (!pts.EndOfFile())
-		{
-			if (pts.Ref() == closebegin)
-			{
-				if (pts.Ref(1, error) == closeend && error == PTDSFileErrorCode::Unknown)
-				{
-					pts.Next();
-					pts.Next();
-					return;
-				}
-			}
-			switch (pts.Ref())
-			{
-			case ig_null:
-			case ig_space:
-			case ig_table:
-				break;
-			case ig_cr:
-			case ig_lf:
-				this->ProcLineFeed();
-				continue;
-				break;
-			default:
-				break;
-			}
-			pts.Next();
-		}
-		throw PTDSException(PTDSErrorCode::CommentNotClosed, L"CommentNotClosed", line, position, L'\0');
-	}
-	void PTDSFile::FilCommentEx()
-	{
-		this->FilComment(keyword_quote, keyword_ex_bracketclose);
-	}
-	void PTDSFile::FilCommentC()
-	{
-		this->FilComment(keyword_ex_mul, keyword_ex_div);
-	}
-	void PTDSFile::FilCommentCpp()
-	{
-		PTDSFile& pts{ *this };
-		PTDSFileErrorCode error{ PTDSFileErrorCode::Unknown };
-		PTDSBasicType::tsize line = pts.Line();
-		PTDSBasicType::tsize position = pts.Position();
-		while (!pts.EndOfFile())
-		{
-			//	std::wcout << pts.Ref(); //
-			switch (pts.Ref())
-			{
-			case ig_cr:
-				if (pts.Ref(1, error) == ig_lf && error == PTDSFileErrorCode::Unknown)
-				{
-					pts.Next();
-					//	std::wcout << pts.Ref(); //
-				}
-				pts.Next();
-				pts.AddLine();
-				return;
-				break;
-			case ig_lf:
-				pts.Next();
-				pts.AddLine();
-				return;
-				break;
-			default:
-				break;
-			}
-			pts.Next();
-		}
-	}
-
-	// Warp
-
-	bool PTDSWarpFile::RefOuterBuffer(const PTDSBasicType::char_utf16le* buffer, const PTDSBasicType::tsize& size)
-	{
-		if (buffer == nullptr)
-		{
-			error_code = PTDSFileErrorCode::FailedInOpenFile;
-			return false;
-		}
-		if (size < 1)
-		{
-			error_code = PTDSFileErrorCode::NullFile;
-			return false;
-		}
-		this->~PTDSWarpFile();
-		error_code = PTDSFileErrorCode::Unknown;
-		valid_size = size;
-		base_index = 0;
-		curr_index = 0;
-		line = 1;
-		position = 1;
-		buffer_flipped = false;
-		buffer_ref = buffer;
-
-		const unsigned char* bom_ptr{ reinterpret_cast<const unsigned char*>(buffer_ref) };
-		const unsigned char UTF16LE[4]{ 0xFFu, 0xFEu, 0x00u, 0x00u };
-		if (bom_ptr[0] == UTF16LE[0] && bom_ptr[1] == UTF16LE[1])
-		{
-			buffer_ref += 1;
-			valid_size -= 1;
-			if (valid_size < 1)
-			{
-				error_code = PTDSFileErrorCode::NullFile;
-				return false;
-			}
-		}
-		return true;
-	}
-	bool PTDSWarpFile::CopyOuterAsBuffer(const PTDSBasicType::char_utf16le* buffer, const PTDSBasicType::tsize& size)
-	{
-		if (buffer == nullptr)
-		{
-			error_code = PTDSFileErrorCode::FailedInOpenFile;
-			return false;
-		}
-		if (size < 1)
-		{
-			error_code = PTDSFileErrorCode::NullFile;
-			return false;
-		}
-		this->~PTDSWarpFile();
-		error_code = PTDSFileErrorCode::Unknown;
-		valid_size = size;
-		base_index = 0;
-		curr_index = 0;
-		line = 1;
-		position = 1;
-		buffer_flipped = false;
-
-		constexpr PTDSBasicType::tsize type_size{ sizeof(PTDSBasicType::char_utf16le) };
-		buffer_1 = new PTDSBasicType::char_utf16le[size + 1];
-		const PTDSBasicType::tsize buffer_size{ size* type_size };
-		memcpy_s(buffer_1, buffer_size, buffer, buffer_size);
-		buffer_1[size] = L'\0';
-		buffer_ref = buffer_1;
-
-		const unsigned char* bom_ptr{ reinterpret_cast<const unsigned char*>(buffer_ref) };
-		const unsigned char UTF16LE[4]{ 0xFFu, 0xFEu, 0x00u, 0x00u };
-		if (bom_ptr[0] == UTF16LE[0] && bom_ptr[1] == UTF16LE[1])
-		{
-			buffer_ref += 1;
-			valid_size -= 1;
-			if (valid_size < 1)
-			{
-				error_code = PTDSFileErrorCode::NullFile;
-				return false;
-			}
-		}
-		return true;
-	}
-	bool PTDSWarpFile::Open(const PTDSBasicType::char_utf16le* file_name_)
-	{
-		return false;
-	}
-	bool PTDSWarpFile::Next()
-	{
-		if (this->EndOfFile())
-		{
-			return false;
-		}
-		++curr_index;
-		++position;
-		return true;
-	}
-	const PTDSBasicType::char_utf16le& PTDSWarpFile::Ref(signed int addr, PTDSFileErrorCode& error)
-	{
-		static constexpr PTDSBasicType::char_utf16le null_char{ L'\0' };
-		if ((static_cast<PTDSBasicType::i64>(curr_index) + addr) < 0)
-		{
-			error = PTDSFileErrorCode::RefOffsetTooBig;
-			return null_char;
-		}
-		const PTDSBasicType::tsize target_index{ curr_index + addr };
-		if (target_index >= valid_size)
-		{
-			error = PTDSFileErrorCode::RefOffsetTooBig;
-			return null_char;
-		}
-		return buffer_ref[target_index];
 	}
 }
 // PTDSException
@@ -883,7 +861,7 @@ namespace Petal
 	void PTDS::LoadPTDSFromOuterBuffer(const PTDSBasicType::char_utf16le* buffer, const PTDSBasicType::tsize& size)
 	{
 		PTDO& pto = (*(reinterpret_cast<PTDO*>(this->pto)));
-		PTDSWarpFile file_pts;
+		PTDSFile file_pts;
 		if (file_pts.RefOuterBuffer(buffer, size) == false)
 		{
 			throw PTDSException{ PTDSErrorCode::FailedInOpenFile, PTDSErrorMsg::FailedInOpenFile, static_cast<PTDSBasicType::tsize>(file_pts.LastError()), 0, L'\0' };
@@ -894,7 +872,7 @@ namespace Petal
 	void PTDS::LoadPTDSFromBuffer(const PTDSBasicType::char_utf16le* buffer, const PTDSBasicType::tsize& size)
 	{
 		PTDO& pto = (*(reinterpret_cast<PTDO*>(this->pto)));
-		PTDSWarpFile file_pts;
+		PTDSFile file_pts;
 		if (file_pts.CopyOuterAsBuffer(buffer, size) == false)
 		{
 			throw PTDSException{ PTDSErrorCode::FailedInOpenFile, PTDSErrorMsg::FailedInOpenFile, static_cast<PTDSBasicType::tsize>(file_pts.LastError()), 0, L'\0' };
@@ -1172,7 +1150,7 @@ namespace Petal
 			TSP tsp;
 			while (!pts.EndOfFile())
 			{
-				pts.NextValid();
+				NextValid(pts);
 				if (pts.EndOfFile())
 				{
 					break;
@@ -1202,7 +1180,7 @@ namespace Petal
 			const PTDSBasicType::tsize ser_tag_line{ pts.Line() }; // 标签起始行
 			const PTDSBasicType::tsize ser_tag_pos{ pts.Position() }; // 标签起始位置
 			PTDSTools::TagSet local_tag_set;
-			pts.NextValid(); // 引用到标签名第一个字符
+			NextValid(pts); // 引用到标签名第一个字符
 			if (pts.EndOfFile())
 			{
 				throw PTDSException(PTDSErrorCode::CanNotFindTag, PTDSErrorMsg::CanNotFindTag, ser_tag_line, ser_tag_pos, L'\0');
@@ -1223,7 +1201,7 @@ namespace Petal
 			}
 			root_tag_set.insert(tag);
 			tsp.push_back(tag);
-			pts.NextValid();
+			NextValid(pts);
 			if (pts.EndOfFile())
 			{
 				throw PTDSException(PTDSErrorCode::TagNotClosed, PTDSErrorMsg::TagNotClosed, ser_tag_line, ser_tag_pos, L'\0');
@@ -1234,7 +1212,7 @@ namespace Petal
 				throw PTDSException(PTDSErrorCode::IllegalCharacter, PTDSErrorMsg::IllegalCharacter, pts);
 			}
 			pts.Next();
-			pts.NextValid();
+			NextValid(pts);
 			// 此时 pts 引用到 “[tag]   xyz” 中的x
 			// x 可能是 "entity_begin", '<', '{'
 
@@ -1253,7 +1231,7 @@ namespace Petal
 					PTDSBasicType::tsize line{ pts.Line() };
 					PTDSBasicType::tsize position{ pts.Position() };
 					AnType(pts, attr_set.size, attr_set.type);
-					pts.NextValid();
+					NextValid(pts);
 					if (pts.EndOfFile() == true)
 					{
 						throw PTDSException(PTDSErrorCode::CanNotFindEntity, PTDSErrorMsg::CanNotFindEntity, line, position, L'\0');
@@ -1263,7 +1241,7 @@ namespace Petal
 						pts.Next();
 						line = pts.Line();
 						position = pts.Position();
-						pts.NextValid();
+						NextValid(pts);
 						if (pts.EndOfFile() == true)
 						{
 							throw PTDSException(PTDSErrorCode::CanNotFindEntity, PTDSErrorMsg::CanNotFindEntity, line, position, L'\0');
@@ -1288,7 +1266,7 @@ namespace Petal
 					const PTDSBasicType::tsize line{ pts.Line() };
 					const PTDSBasicType::tsize position{ pts.Position() };
 					pts.Next();
-					pts.NextValid();
+					NextValid(pts);
 					if (pts.EndOfFile() == true)
 					{
 						throw PTDSException(PTDSErrorCode::CanNotFindEntity, PTDSErrorMsg::CanNotFindEntity, line, position, L'\0');
@@ -1324,7 +1302,7 @@ namespace Petal
 			PTDSBasicType::tsize position{ pts.Position() };
 			while (pts.EndOfFile() == false)
 			{
-				pts.NextValid();
+				NextValid(pts);
 				if (pts.EndOfFile())
 				{
 					throw PTDSException(PTDSErrorCode::BlockNotClosed, PTDSErrorMsg::BlockNotClosed, line, position, L'\0');
@@ -1353,7 +1331,7 @@ namespace Petal
 				throw PTDSException(PTDSErrorCode::IllegalCharacter, PTDSErrorMsg::IllegalCharacter, pts);
 			}
 			pts.Next();
-			pts.NextValid();
+			NextValid(pts);
 			if (pts.EndOfFile() == true)
 			{
 				throw PTDSException(PTDSErrorCode::TypeNotClosed, PTDSErrorMsg::TypeNotClosed, line, position, L'\0');
@@ -1369,7 +1347,7 @@ namespace Petal
 					throw PTDSException(PTDSErrorCode::WrongSize, PTDSErrorMsg::WrongSize, pts);
 				}
 				size = static_cast<PTDSBasicType::tsize>(val.u64);
-				pts.NextValid();
+				NextValid(pts);
 				if (pts.EndOfFile() == true)
 				{
 					throw PTDSException(PTDSErrorCode::TypeNotClosed, PTDSErrorMsg::TypeNotClosed, line, position, L'\0');
@@ -1377,7 +1355,7 @@ namespace Petal
 				if (pts.Ref() == keyword_separator)
 				{
 					pts.Next();
-					pts.NextValid();
+					NextValid(pts);
 					if (pts.EndOfFile() == true)
 					{
 						throw PTDSException(PTDSErrorCode::TypeNotClosed, PTDSErrorMsg::TypeNotClosed, line, position, L'\0');
@@ -1387,7 +1365,7 @@ namespace Petal
 					{
 						throw PTDSException(PTDSErrorCode::WrongType, PTDSErrorMsg::WrongType, pts);
 					}
-					pts.NextValid();
+					NextValid(pts);
 					if (pts.EndOfFile() == true)
 					{
 						throw PTDSException(PTDSErrorCode::TypeNotClosed, PTDSErrorMsg::TypeNotClosed, line, position, L'\0');
@@ -1419,7 +1397,7 @@ namespace Petal
 				{
 					throw PTDSException(PTDSErrorCode::WrongType, PTDSErrorMsg::WrongType, pts);
 				}
-				pts.NextValid();
+				NextValid(pts);
 				if (pts.EndOfFile() == true)
 				{
 					throw PTDSException(PTDSErrorCode::TypeNotClosed, PTDSErrorMsg::TypeNotClosed, line, position, L'\0');
@@ -1427,7 +1405,7 @@ namespace Petal
 				if (pts.Ref() == keyword_separator)
 				{
 					pts.Next();
-					pts.NextValid();
+					NextValid(pts);
 					if (pts.EndOfFile() == true)
 					{
 						throw PTDSException(PTDSErrorCode::TypeNotClosed, PTDSErrorMsg::TypeNotClosed, line, position, L'\0');
@@ -1441,7 +1419,7 @@ namespace Petal
 						throw PTDSException(PTDSErrorCode::WrongSize, PTDSErrorMsg::WrongSize, pts);
 					}
 					size = static_cast<PTDSBasicType::tsize>(val.u64);
-					pts.NextValid();
+					NextValid(pts);
 					if (pts.EndOfFile() == true)
 					{
 						throw PTDSException(PTDSErrorCode::TypeNotClosed, PTDSErrorMsg::TypeNotClosed, line, position, L'\0');
@@ -1513,18 +1491,18 @@ namespace Petal
 			auto check_type_aft_block = []
 			(PTDSFile& pts, AttributeRecordSet& attr_set, const PTDSBasicType::tsize& line, const PTDSBasicType::tsize& position) -> void
 			{
-				pts.NextValid();
+				NextValid(pts);
 				if (pts.EndOfFile() == true || pts.Ref() != keyword_blockclose)
 				{
 					throw PTDSException(PTDSErrorCode::BlockNotClosed, PTDSErrorMsg::BlockNotClosed, line, position, L'\0');
 				}
 				pts.Next();
 				PTDSBasicTypeEnum post_type{ PTDSBasicTypeEnum::Unknown };
-				pts.NextValid();
+				NextValid(pts);
 				if (pts.EndOfFile() == false)
 				{
 					RecordPostType(pts, post_type);
-					pts.NextValid();
+					NextValid(pts);
 					if (post_type != PTDSBasicTypeEnum::Unknown)
 					{
 						if (attr_set.type == PTDSBasicTypeEnum::Unknown)
@@ -1690,17 +1668,17 @@ namespace Petal
 			{
 				AttributeRecord attr;
 				RecordNumber(pts, attr);
-				pts.NextValid();
+				NextValid(pts);
 				if (pts.EndOfFile() == false)
 				{
 					RecordPostType(pts, attr.type);
-					pts.NextValid();
+					NextValid(pts);
 				}
 				dest.vset.push_back(::std::move(attr));
 				if (pts.Ref() == L',')
 				{
 					pts.Next();
-					pts.NextValid();
+					NextValid(pts);
 					if (CheckNumberBegin(pts.Ref()) == false)
 					{
 						break;
@@ -1723,13 +1701,13 @@ namespace Petal
 				attr.sign = L"+";
 				attr.positive = true;
 				pts.Next();
-				pts.NextValid();
+				NextValid(pts);
 				break;
 			case L'-':
 				attr.sign = L"-";
 				attr.positive = false;
 				pts.Next();
-				pts.NextValid();
+				NextValid(pts);
 				break;
 			default:
 				break;
@@ -1900,17 +1878,17 @@ namespace Petal
 				{
 					throw PTDSException(PTDSErrorCode::IllegalCharacter, PTDSErrorMsg::IllegalCharacter, pts);
 				}
-				pts.NextValid();
+				NextValid(pts);
 				if (pts.EndOfFile() == false)
 				{
 					RecordPostType(pts, attr.type);
-					pts.NextValid();
+					NextValid(pts);
 				}
 				dest.vset.push_back(::std::move(attr));
 				if (pts.Ref() == L',')
 				{
 					pts.Next();
-					pts.NextValid();
+					NextValid(pts);
 					if (CheckNumberBegin(pts.Ref()) == false && CheckBooleanBegin(pts.Ref()) == false)
 					{
 						break;
@@ -2007,17 +1985,17 @@ namespace Petal
 					throw PTDSException(PTDSErrorCode::IllegalCharacter, PTDSErrorMsg::IllegalCharacter, pts);
 				}
 				pts.Next();
-				pts.NextValid();
+				NextValid(pts);
 				if (pts.EndOfFile() == false)
 				{
 					RecordPostType(pts, attr.type);
-					pts.NextValid();
+					NextValid(pts);
 				}
 				dest.vset.push_back(::std::move(attr));
 				if (pts.EndOfFile() == false && pts.Ref() == L',')
 				{
 					pts.Next();
-					pts.NextValid();
+					NextValid(pts);
 					if (pts.EndOfFile() == true || pts.Ref() != keyword_quote)
 					{
 						break;
