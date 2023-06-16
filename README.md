@@ -39,6 +39,37 @@ void query_pen_color(const Petal::PTDS& ptds) {
 ```
 详尽的规则请移步 [ptds-concepts](concepts.md "Standard of PTDS").  
 
+# About ptds lib
+
+# Load
+
+PTDS 的相关内容都在 namespace `Petal` 中,  
+若要打开磁盘上的 ptds 文件, 请使用 `PTDS::LoadPTDS` 方法,  
+被打开的文件必须为带有 BOM 的 utf-16(le) 编码的文本文件,  
+并且文件中的内容符合 ptds 的格式.  
+对于 buffer 上的 ptds 内容,  
+可以使用`PTDS::LoadPTDSFromBuffer`和`PTDS::LoadPTDSFromOuterBuffer`方法,  
+前者会复制一遍缓冲区内的内容, 至载入并解释结束后释放,  
+后者直接引用传入的缓冲区, 不会进行复制, 调用方只需保证在此方法结束前不要更改或释放这段缓冲区即可.  
+使用这两种方法时, 缓冲区内不必带有 BOM.  
+
+以上三个方法在失败时将抛出异常`Petal::PTDSException`,  
+抛出异常即说明打开文件或解释失败,  
+具体内容请参照`PTDS.h`头中的内容.  
+
+# Query
+
+在载入并解释成功后, ptds 文件中的内容会被解析称相应的格式, 并存在`PTDS::pto`引用的对象中,  
+它是一个`std::unordered_map<PTDSBasicType::str, PTDSValueSet>`类型的对象,  
+查询时可以调用的方法
+1. `PTDS::Entity`查询实体, 要求提供实体名称, 成功则返回`const Petal::PTDSValueSet&`类型 const 对象.  
+2. `PTDS::ElementXXX`查询实体中的值, 要求提供实体名称和索引(索引从0开始), 成功则返回相应类型的 const 值.  
+3. `PTDS::PTDSObject`得到 PTDO const 对象, 使用其他方法查询.  
+
+`PTDS::Entity`和`PTDS::ElementXXX`查询失败时, 会抛出异常`Petal::PTDSQueryException`,  
+抛出异常说明查询失败, 没有拿到有效的值,  
+具体内容请参照`PTDS.h`头中的内容.  
+
 # About Demo
 
 进入程序后先进行本地化配置使`std::wcout` `std::wcin`正常工作,  
