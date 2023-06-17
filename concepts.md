@@ -214,7 +214,7 @@ PTDS 基本类型表
 | `u16` | `u16` | 2 | `uint16` | `unsigned short` |  
 | `u32` | `u32` | 3 | `uint32` | `unsigned long` |  
 | `u64` | `u64` | 4 | `uint64` | `unsigned long long` |  
-| `i8` | `i8` | 5 | `int8` | `unsigned char` |  
+| `i8` | `i8` | 5 | `int8` | `signed char` |  
 | `i16` | `i16` | 6 | `int16` | `short` |  
 | `i32` | `i32` | 7 | `int32` | `long` |  
 | `i64` | `i64` | 8 | `int64` | `long long` |  
