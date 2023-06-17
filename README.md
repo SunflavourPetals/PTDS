@@ -1,15 +1,16 @@
 # 仓库结构
 
-`sln` 中为 ptds 解释器(ptds.vcxproj)和 demo(demo.vcxproj) 的 VS 解决方案  
+`sln` 中为 ptds 解析器(ptds.vcxproj)和 demo(demo.vcxproj) 的 VS 解决方案  
 `bin` 中有 `demo` 和 `ptds_lib` 两个文件夹  
 `demo` 中为演示程序, 包含可执行文件、test.ptds文件和x64-release版本的动态链接库  
-`ptds_lib` 中为 ptds 解释器的静态库、动态库、源文件和头文件  
+`ptds_lib` 中为 ptds 解析器的静态库、动态库、源文件和头文件  
 `readme.md`  
 `concepts.md` 详细的 PTDS 文件的编写规范  
 
 # About PTDS
-PTDS(Petal Textualized Data Store)
-是自制的文本数据交换格式, 实现的解释器支持采用 utf-16 le 编码的文本文件.  
+PTDS(Petal Textualized Data Store) 是自制的文本数据仓库格式,  
+可以将结构化的文本数据加载到程序并解析成二进制数据供程序使用,  
+实现的解析器仅支持采用 utf-16 le 编码的文本文件.  
 PTDS 使用八个标点符号`[]<>{}",`完成对数据的定义  
 形如`[name]<type, size>{attr...}`  
 ```
@@ -52,6 +53,7 @@ PTDS 的相关内容都在 namespace `Petal` 中,
 前者会复制一遍缓冲区内的内容, 至载入并解释结束后释放,  
 后者直接引用传入的缓冲区, 不会进行复制, 调用方只需保证在此方法结束前不要更改或释放这段缓冲区即可.  
 使用这两种方法时, 缓冲区内不必带有 BOM.  
+推荐使用`PTDS::LoadPTDSFromOuterBuffer`方法, 因为其不会有任何多余的内存上的开销.  
 
 以上三个方法在失败时将抛出异常`Petal::PTDSException`,  
 抛出异常即说明打开文件或解释失败,  
