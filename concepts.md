@@ -204,7 +204,13 @@ void query_entity(const Petal::PTDS& ptds)
 
 ### 基本类型
 
-PTDS 的基本类型有13个, 分别是
+PTDS 基本类型表  
+| PTDSBasicType | PTDSBasicTypeEnum | Type in C++ |  
+| :---: | :---: | :---: |  
+| `u8` | `u8` : 1 | `uint8_t` |  
+| `u16` | `u16` : 2 | `uint16_t` |  
+
+PTDS 的基本类型有13个, 分别是  
 1. `u8`, 对应 c++ `unsigned char` 类型.  
   数值范围在`0`~`255`  
 2. `u16`, 对应 c++ `unsigned short int` 类型.  
