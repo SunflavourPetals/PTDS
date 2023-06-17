@@ -227,7 +227,7 @@ PTDS 的基本类型有13个, 分别是
 12. `str`, 字符串, 在 Windows 平台使用`std::wstring`类型.  
 16. `bool`, 对应 c++ `bool` 类型.  
 
-注意, PTDS 中类型不检查大小写, 即`bool` `str`和`BoOl` `sTr`等都是正确的  
+注意, PTDS 中类型不检查大小写, 即`i8` `bool` `char` `str`和`I8` `BOOL` `CHAR` `STR` `BoOl` `ChAr` `sTr`等都是正确的  
 
 对应 PTDS.h 中`Petal::PTDSBasicTypeEnum`枚举类和`Petal::PTDSBasicType`命名空间中的`u8`, `u16`, `u32`, `u64`, `i8`, `i16`, `i32`, `i64`, `f32`, `f64`, `cha`, `str`, `bln`.  
 
