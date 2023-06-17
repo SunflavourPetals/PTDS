@@ -92,6 +92,20 @@ PTDS 文件中的数据为非字符串类型的数据时, `Petal::PTDSValueSet::
 若出现差错可能会使`std::wcout`无法输出正确的内容, `std::wcin`也将无法正确录入内容, 届时请重启程序, 并重新进行正确的 locale 设置.  
 
 输入实体名称时, 请严丝合缝地输入, 如果有多余的任何字符如空格等, 都会导致找不到实体(只是个demo, 我懒得去处理这些了).  
+```
+[" PTDS demo "]
+[First] [Last] 1 i32
+```
+``` c++
+// query in c++
+void query(const Petal::PTDS& ptds) try {
+    ptds.Entity(L"First:Last"); // 正确
+//  ptds.Entity(L" First: Last "); // 错误
+}
+catch (Petal::PTDSQueryException&) {
+    std::cout << "can not find entity \"First:Last\"" << std::endl;
+}
+```
 
 在输入文件名和输入实体名称时可以输入`:`查看当前可用的命令  
 实用的命令有
