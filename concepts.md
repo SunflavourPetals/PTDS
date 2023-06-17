@@ -65,8 +65,7 @@ def"
 3. 想要在字符值或字符串中使用一些特殊符号如换行, 请使用[转义字符](#转义字符)
 ```
 [str3] "abc\ndef"
-(" Entity(L"str3") -> "abc
-def"   此处的换行符为\n, 参照 C/C++: L"abc\ndef" ")
+// Entity(L"str3") -> "abc\ndef" 此处的换行符为\n, 转义的效果参照 C/C++: L"abc\ndef"  
 ```
 
 #### 转义字符
