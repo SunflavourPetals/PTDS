@@ -2,6 +2,12 @@
 #pragma comment(lib, "ptds.lib")
 
 #include <iostream>
+#include <string>
+
+#include <Petal~PerformanceCounter.h>
+// if Petal~PerformanceCounter.h not exist
+// undef _Petal_PC
+#define _Petal_PC
 
 void print_entity_info(const Petal::PTDSValueSet& entity)
 {
@@ -126,7 +132,7 @@ void print_all(const Petal::PTDO& o)
 		}
 	}
 }
-int main()
+int wmain(int argc, wchar_t* argv[])
 {
 	using namespace Petal;
 	using namespace std;
@@ -137,38 +143,64 @@ int main()
 	WString tag;
 	int index{ 0 };
 
-	for (;;)
+	if (argc >= 2)
 	{
-		cout << "* 设置 locale, 中文环境请输入“chs”" << endl << "* set locale: " << endl << ">>> ";
-		cin >> locale_str;
-		if (locale_str == ":q")
-		{
-			cout << "* 程序已退出" << endl;
-			system("pause");
-			return 0;
-		}
-		if (locale_str == ":cls" || locale_str == ":clear")
-		{
-			system("cls");
-			continue;
-		}
+		char* buff = new char[128];
+		sprintf_s(buff, 128, "%ls", argv[1]);
+		locale_str = buff;
+		delete[] buff;
 		try
 		{
 			wcout.imbue(std::locale(locale_str));
 			wcin.imbue(std::locale(locale_str));
-			break;
 		}
 		catch (std::exception&)
 		{
 			std::cout << "! Failed" << std::endl;
-			continue;
+			goto _ptds_demo_Input_locale;
 		}
 	}
-
+	else
+	{
+		_ptds_demo_Input_locale:
+		for (;;)
+		{
+			cout << "* 设置 locale, 中文环境请输入“chs”" << endl << "* set locale: " << endl << ">>> ";
+			cin >> locale_str;
+			if (locale_str == ":q")
+			{
+				cout << "* 程序已退出" << endl;
+				system("pause");
+				return 0;
+			}
+			if (locale_str == ":cls" || locale_str == ":clear")
+			{
+				system("cls");
+				continue;
+			}
+			try
+			{
+				wcout.imbue(std::locale(locale_str));
+				wcin.imbue(std::locale(locale_str));
+				break;
+			}
+			catch (std::exception&)
+			{
+				std::cout << "! Failed" << std::endl;
+				continue;
+			}
+		}
+	}
+	if (argc >= 3)
+	{
+		file = argv[2];
+		goto _ptds_demo_An_file_name;
+	}
 	for (;;)
 	{
 		cout << "* 输入要打开的文件名" << endl << ">>> ";
 		wcin >> file;
+		_ptds_demo_An_file_name:
 		if (file == L":" || file == L":h")
 		{
 			cout
@@ -189,7 +221,15 @@ int main()
 		}
 		try
 		{
+#ifdef _Petal_PC
+			PerformanceCounter f;
+			f.Count();
 			ptds.LoadPTDS(file.c_str());
+			f.Count();
+			cout << "* res time: " << f.DeltaTime() << " second" << endl;
+#else
+			ptds.LoadPTDS(file.c_str());
+#endif
 		}
 		catch (Petal::PTDSException& e)
 		{
@@ -236,7 +276,15 @@ int main()
 			{
 				try
 				{
+#ifdef _Petal_PC
+					PerformanceCounter f;
+					f.Count();
 					ptds.LoadPTDS(file.c_str());
+					f.Count();
+					cout << "* res time: " << f.DeltaTime() << " second" << endl;
+#else
+					ptds.LoadPTDS(file.c_str());
+#endif
 					cout << "* 重新加载成功" << endl;
 					continue;
 				}
