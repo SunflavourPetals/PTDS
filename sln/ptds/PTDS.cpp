@@ -1303,14 +1303,14 @@ namespace Petal
 			while (pts.EndOfFile() == false)
 			{
 				NextValid(pts);
-				if (pts.EndOfFile())
+				if (pts.EndOfFile() == true)
 				{
 					throw PTDSException(PTDSErrorCode::BlockNotClosed, PTDSErrorMsg::BlockNotClosed, line, position, L'\0');
 				}
 				if (pts.Ref() == keyword_blockclose)
 				{
 					pts.Next();
-					break;
+					return;
 				}
 				else if (pts.Ref() == keyword_tagopen)
 				{
@@ -1321,6 +1321,7 @@ namespace Petal
 					throw PTDSException(PTDSErrorCode::IllegalCharacter, PTDSErrorMsg::IllegalCharacter, pts);
 				}
 			}
+			throw PTDSException(PTDSErrorCode::BlockNotClosed, PTDSErrorMsg::BlockNotClosed, line, position, L'\0');
 		}
 		void AnType(PTDSFile& pts, PTDSBasicType::tsize& size, PTDSBasicTypeEnum& type)
 		{
