@@ -205,10 +205,21 @@ void query_entity(const Petal::PTDS& ptds)
 ### 基本类型
 
 PTDS 基本类型表  
-| PTDSBasicType | PTDSBasicTypeEnum | Type in C++ |  
-| :---: | :---: | :---: |  
-| `u8` | `u8` : 1 | `uint8_t` |  
-| `u16` | `u16` : 2 | `uint16_t` |  
+| PTDS Basic Type | PTDSBasicType/Enum | Enum Value | Type | Type in C++ |  
+| :---: | :---: | :---: | :---: | :---: |  
+| `u8` | `u8` | 1 | `uint8` | `unsigned char` |  
+| `u16` | `u16` | 2 | `uint16` | `unsigned short` |  
+| `u32` | `u32` | 3 | `uint32` | `unsigned long` |  
+| `u64` | `u64` | 4 | `uint64` | `unsigned long long` |  
+| `i8` | `i8` | 5 | `int8` | `unsigned char` |  
+| `i16` | `i16` | 6 | `int16` | `short` |  
+| `i32` | `i32` | 7 | `int32` | `long` |  
+| `i64` | `i64` | 8 | `int64` | `long long` |  
+| `f32` | `f32` | 9 | `float32` | `float` |  
+| `f64` | `f64` | 10 | `float64` | `double` |  
+| `char` | `cha` | 11 | `char16` | `wchar_t` |  
+| `str` | `str` | 12 | `string` | `std::wstring` |  
+| `bool` | `bln` | 16 | `boolean` | `bool` |  
 
 PTDS 的基本类型有13个, 分别是  
 1. `u8`, 对应 c++ `unsigned char` 类型.  
