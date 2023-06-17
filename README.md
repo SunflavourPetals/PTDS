@@ -76,9 +76,9 @@ PTDS 文件中的数据为非字符串类型的数据时, `Petal::PTDSValueSet::
 ```
 [" PTDS "] [num] + (" record sign and value ") 1
            [hex] + 0xFFff00aA
-           [str]   "string...\x20"
+           [str]   "string...\x20..."
 ```
-则`Petal::PTDSValueSet::str`中的内容分别为`+1`, `+0xFFff00aA`, `string... `   
+则`Petal::PTDSValueSet::str`中的内容分别为`+1`, `+0xFFff00aA`, `string... ...`   
 在 C++ 程序中调用`Petal::PTDS::OriElemStr`查询原始的字符串或字符串类型的值.  
 此方法失败时会抛出异常`Petal::PTDSQueryException`,  
 抛出异常说明查询失败, 没有拿到有效的值。  
