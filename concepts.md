@@ -41,13 +41,13 @@
 
 字符和字符串需要使用引号`"`引起来, 值为字符类型时, 引号内有且只能有一个字符, 为了区别字符与字符串, 此处指明了值的类型并指定了实体名称,  
 正确示范如  
-`[char]<char> { "C" }`  
-`[str]<str> { "S" }`  
-`[str]<str> { "" }`  
-`[str]<str> { "String" }`   
+`[char] <char> {    "C"   }`  
+`[str]  <str>  {    "S"   }`  
+`[str]  <str>  {    ""    }`  
+`[str]  <str>  { "String" }`   
 错误示范如  
-`[char]<char> { "" }`  
-`[char]<char> { "String" }`  
+`[char] <char> {    ""    }`  
+`[char] <char> { "String" }`  
 
 在字符串中换行的问题:  
 1. 直接换行将导致换行符被录入
