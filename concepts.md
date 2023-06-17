@@ -66,7 +66,7 @@ def"
 ```
 [str3] "abc\ndef"
 (" Entity(L"str3") -> "abc
-def"   (此处的换行符为\n) ")
+def"   此处的换行符为\n, 参照 C/C++: L"abc\ndef" ")
 ```
 
 #### 转义字符
