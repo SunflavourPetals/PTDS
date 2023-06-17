@@ -5,7 +5,7 @@
 `demo` 中为演示程序, 包含可执行文件、test.ptds文件和x64-release版本的动态链接库  
 `ptds_lib` 中为 ptds 解释器的静态库、动态库、源文件和头文件  
 `readme.md`  
-`concepts.md` 详细的 PTDS 文件的规范  
+`concepts.md` 详细的 PTDS 文件的编写规范  
 
 # About PTDS
 PTDS(Petal Textualized Data Store)
@@ -31,7 +31,7 @@ PTDS 使用八个标点符号`[]<>{}",`完成对数据的定义
     }
 }
 ```
-在 c++ 程序查询时标签用`:`进行连接  
+在 c++ 程序查询时标签内的名称用`:`进行连接  
 ``` c++
 void query_pen_color(const Petal::PTDS& ptds) {
     ptds.ElementStr(L"sth:pen:color");
