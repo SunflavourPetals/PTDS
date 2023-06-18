@@ -50,13 +50,13 @@ PTDS 的相关内容都在 namespace `Petal` 中,
 并且文件中的内容符合 ptds 的格式.  
 对于 buffer 上的 ptds 内容,  
 可以使用`PTDS::LoadPTDSFromBuffer`和`PTDS::LoadPTDSFromOuterBuffer`方法,  
-前者会复制一遍缓冲区内的内容, 至载入并解释结束后释放,  
+前者会复制一遍缓冲区内的内容, 至载入并解析结束后释放,  
 后者直接引用传入的缓冲区, 不会进行复制, 调用方只需保证在此方法结束前不要更改或释放这段缓冲区即可.  
 使用这两种方法时, 缓冲区内不必带有 BOM.  
 推荐使用`PTDS::LoadPTDSFromOuterBuffer`方法, 因为其不会有任何多余的内存上的开销.  
 
 以上三个方法在失败时将抛出异常`Petal::PTDSException`,  
-抛出异常即说明打开文件或解释失败,  
+抛出异常即说明打开文件或解析失败,  
 具体内容请参照`PTDS.h`头中的内容.  
 
 # Query
