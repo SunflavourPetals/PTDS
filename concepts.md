@@ -175,7 +175,7 @@ catch (Petal::PTDSQueryException&) {
 }
 [something2] {
     "something"
-    [array] { 1, 2, 3 } // 错误, 解释器会认为是大括号未闭合
+    [array] { 1, 2, 3 } // 错误, 解析器会认为是大括号未闭合
 }
 ```
 同一个块(大括号围住的范围)内不允许出现相同的名称,  
