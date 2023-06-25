@@ -34,8 +34,11 @@ PTDS 使用八个标点符号`[]<>{}",`完成对数据的定义
 ```
 在 c++ 程序查询时标签内的名称用`:`进行连接  
 ``` c++
-void query_pen_color(const Petal::PTDS& ptds) {
+void query_pen_color(const Petal::PTDS& ptds) try {
     ptds.ElementStr(L"sth:pen:color");
+}
+catch (Petal::PTDSQueryException&) {
+    std::cout << "cannot find entity sth:pen:color which type is str" << std::endl;
 }
 ```
 详尽的规则请移步 [ptds-concepts](concepts.md "Standard of PTDS").  
