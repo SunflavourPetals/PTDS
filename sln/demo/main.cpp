@@ -55,7 +55,7 @@ void print_entity_info(const Petal::PTDSValueSet& entity)
 		cout << "* Type: str  -Size: " << entity.v.size() << endl;
 		break;
 	default:
-		cout << "! ÀàÐÍ´íÎó" << endl;
+		cout << "! ç±»åž‹é”™è¯¯" << endl;
 		break;
 	}
 }
@@ -65,7 +65,7 @@ void print_entity_value(const Petal::PTDSValueSet& entity, const Petal::PTDSBasi
 	using namespace std;
 	if (entity.v.size() <= index)
 	{
-		cout << "! Êý×éÔ½½ç" << endl;
+		cout << "! æ•°ç»„è¶Šç•Œ" << endl;
 		return;
 	}
 	switch (entity.t)
@@ -111,7 +111,7 @@ void print_entity_value(const Petal::PTDSValueSet& entity, const Petal::PTDSBasi
 		wcout << entity.v[index].str << endl;
 		break;
 	default:
-		cout << "! ÀàÐÍ´íÎó" << endl;
+		cout << "! ç±»åž‹é”™è¯¯" << endl;
 		break;
 	}
 }
@@ -165,11 +165,11 @@ int wmain(int argc, wchar_t* argv[])
 		_ptds_demo_Input_locale:
 		for (;;)
 		{
-			cout << "* ÉèÖÃ locale, ÖÐÎÄ»·¾³ÇëÊäÈë¡°chs¡±" << endl << "* set locale: " << endl << ">>> ";
+			cout << "* è®¾ç½® locale, ä¸­æ–‡çŽ¯å¢ƒè¯·è¾“å…¥â€œchsâ€" << endl << "* set locale: " << endl << ">>> ";
 			cin >> locale_str;
 			if (locale_str == ":q")
 			{
-				cout << "* ³ÌÐòÒÑÍË³ö" << endl;
+				cout << "* ç¨‹åºå·²é€€å‡º" << endl;
 				system("pause");
 				return 0;
 			}
@@ -198,7 +198,7 @@ int wmain(int argc, wchar_t* argv[])
 	}
 	for (;;)
 	{
-		cout << "* ÊäÈëÒª´ò¿ªµÄÎÄ¼þÃû" << endl << ">>> ";
+		cout << "* è¾“å…¥è¦æ‰“å¼€çš„æ–‡ä»¶å" << endl << ">>> ";
 		wcin >> file;
 		_ptds_demo_An_file_name:
 		if (file == L":" || file == L":h")
@@ -210,7 +210,7 @@ int wmain(int argc, wchar_t* argv[])
 		}
 		if (file == L":q")
 		{
-			cout << "* ³ÌÐòÒÑÍË³ö" << endl;
+			cout << "* ç¨‹åºå·²é€€å‡º" << endl;
 			system("pause");
 			break;
 		}
@@ -241,11 +241,11 @@ int wmain(int argc, wchar_t* argv[])
 				<< L" msg: " << e.message << endl;
 			continue;
 		}
-		cout << "* ´ò¿ª³É¹¦" << endl;
+		cout << "* æ‰“å¼€æˆåŠŸ" << endl;
 
 		for (;;)
 		{
-			cout << "* ÇëÊäÈëÊµÌåÃû³Æ" << endl << ">>> ";
+			cout << "* è¯·è¾“å…¥å®žä½“åç§°" << endl << ">>> ";
 			wcin >> tag;
 			if (tag == L":")
 			{
@@ -262,7 +262,7 @@ int wmain(int argc, wchar_t* argv[])
 			{
 				break;
 			}
-			if (tag == L":cls" || tag == L"clear")
+			if (tag == L":cls" || tag == L":clear")
 			{
 				system("cls");
 				continue;
@@ -285,12 +285,12 @@ int wmain(int argc, wchar_t* argv[])
 #else
 					ptds.LoadPTDS(file.c_str());
 #endif
-					cout << "* ÖØÐÂ¼ÓÔØ³É¹¦" << endl;
+					cout << "* é‡æ–°åŠ è½½æˆåŠŸ" << endl;
 					continue;
 				}
 				catch (Petal::PTDSException& e)
 				{
-					cout << "! ÖØÐÂ¼ÓÔØÊ§°Ü" << endl;
+					cout << "! é‡æ–°åŠ è½½å¤±è´¥" << endl;
 					using namespace std;
 					std::wcout.imbue(std::locale("chs"));
 					cout
@@ -311,7 +311,7 @@ int wmain(int argc, wchar_t* argv[])
 
 				if (entity.v.size() > 1)
 				{
-					cout << "* ÇëÊäÈëË÷Òý(0~" << entity.v.size() - 1 << ")" << endl << ">>> ";
+					cout << "* è¯·è¾“å…¥ç´¢å¼•(0~" << entity.v.size() - 1 << ")" << endl << ">>> ";
 					cin >> index;
 				}
 				else
@@ -321,7 +321,7 @@ int wmain(int argc, wchar_t* argv[])
 
 				if (entity.v.size() <= index)
 				{
-					cout << "! Êý×éÔ½½ç" << endl;
+					cout << "! æ•°ç»„è¶Šç•Œ" << endl;
 					continue;
 				}
 				else
@@ -331,7 +331,7 @@ int wmain(int argc, wchar_t* argv[])
 			}
 			catch (Petal::PTDSQueryException&)
 			{
-				cout << "! ÕÒ²»µ½ÊµÌå" << endl;
+				cout << "! æ‰¾ä¸åˆ°å®žä½“" << endl;
 			}
 		}
 	}
